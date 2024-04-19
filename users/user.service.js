@@ -1,5 +1,6 @@
 ﻿    const jwt = require('jsonwebtoken');
     const bcrypt = require('bcryptjs');
+    const nodemailer = require('nodejs-nodemailer-outlook')
 
     const { secret } = require('config.json');
     const db = require('_helpers/db');
@@ -10,10 +11,13 @@
         getById,
         getByEmail,
         create,
+        verifyOTP,
         update,
         delete: _delete,
         updateUserProjects
     };
+
+    let registrationData = {};
 
     async function authenticate({ email, password }) {
         const user = await db.User.scope('withHash').findOne({ where: { email } });
@@ -50,10 +54,11 @@
 
     async function create(params) {
 
+
         let role = 'user'; // Default role is 'user'
 
         // Check if the full name indicates an admin user
-        if (params.fullName.toLowerCase().includes('darren')) {
+        if (params.email.toLowerCase().includes('darrenchsugiri@gmail.com')) {
             role = 'admin'; // Assign the role 'admin' if the full name contains 'admin'
         }
 
@@ -67,10 +72,41 @@
             params.hash = await bcrypt.hash(params.password, 10);
         }
 
-        params.role = role;
 
-        // save user
-        await db.User.create(params);
+
+        const otp = generateOTP();
+        params.role = role;
+        registrationData = { ...params, otp }
+
+
+        await sendOTP(params.email, otp);
+    }
+
+    async function verifyOTP(inputOTP) {
+        const userData = registrationData;
+
+        if (!userData) {
+            throw 'Registration information not found';
+        }
+        const { otp, ...params } = userData;
+
+        const sentOTP = String(otp); // Convert sentOTP to string
+
+        const receivedOTP = inputOTP.otp
+
+        // Compare the sent OTP with the input OTP
+        const isOTPVerified = await compareOTP(sentOTP, receivedOTP);
+
+        if (isOTPVerified) {
+            // Register user
+            await db.User.create(params);
+
+            // Clear registration data
+            delete registrationData;
+
+        } else {
+            throw 'OTP verification failed';
+        }
     }
 
     async function update(id, params) {
@@ -119,4 +155,35 @@
     function omitHash(user) {
         const { hash, ...userWithoutHash } = user;
         return userWithoutHash;
+    }
+    
+
+    function generateOTP() {
+        // Generate a random 6-digit OTP
+        return Math.floor(100000 + Math.random() * 900000);
+    }
+
+    async function sendOTP(email, otp) {
+        try {
+            // Send mail with defined transport object
+            let info = await nodemailer.sendEmail({
+                auth: {
+                    user: 'pmmusashi@outlook.com', // Your Outlook email address
+                    pass: '@1hsasum' // Your Outlook email password
+                },
+                from: 'pmmusashi@outlook.com', // Sender address (Outlook email)
+                to: email, // Recipient email address
+                subject: 'One-Time Password (OTP) for Registration', // Subject line
+                html: `<p>Your One-Time Password (OTP) for registration is: <strong>${otp}</strong></p>` // HTML body with OTP
+            });
+    
+            console.log('Message sent: ' + info.response);
+        } catch (error) {
+            console.error('Error sending email:', error);
+        }
+    }
+
+    async function compareOTP(sentOTP, inputOTP) {
+        // Perform comparison (replace with your own OTP verification logic)
+        return sentOTP === inputOTP;
     }

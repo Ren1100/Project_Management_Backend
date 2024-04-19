@@ -9,6 +9,7 @@ const userService = require('./user.service');
 // routes
 router.post('/authenticate', authenticateSchema, authenticate);
 router.post('/register', registerSchema, register);
+router.post('/verify-otp', verifyOTPSchema, verifyOTP);
 router.get('/', authorize(), getAll);
 router.get('/current', authorize(), getCurrent);
 router.get('/:id', authorize(), getById);
@@ -42,7 +43,20 @@ function registerSchema(req, res, next) {
 
 function register(req, res, next) {
     userService.create(req.body)
-        .then(() => res.json({ message: 'Registration successful' }))
+        .then(() => res.json({ message: 'OTP has been sent to your email' }))
+        .catch(next);
+}
+
+function verifyOTPSchema(req, res, next) {
+    const schema = Joi.object({
+        otp: Joi.string().required()
+    });
+    validateRequest(req, next, schema);
+}
+
+async function verifyOTP(req, res, next) {
+    userService.verifyOTP(req.body)
+        .then(() => res.json({ message: 'User registered successfully' }))
         .catch(next);
 }
 
