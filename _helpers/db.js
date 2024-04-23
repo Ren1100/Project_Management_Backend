@@ -2,6 +2,8 @@ const tedious = require('tedious');
 const { Sequelize } = require('sequelize');
 
 const { dbName, dbConfig } = require('config.json');
+const { userModel, emailOTPModel } = require('../users/user.model');
+
 
 module.exports = db = {};
 
@@ -19,7 +21,9 @@ async function initialize() {
     const sequelize = new Sequelize(dbName, userName, password, { host, dialect });
 
     // init models and add them to the exported db object
-    db.User = require('../users/user.model')(sequelize);
+    db.User = userModel(sequelize);
+    db.EmailOTP = emailOTPModel(sequelize); // Include EmailOTP model
+
 
     const { Project, Task, Subtask, History } = require('../projects/project.model').initializeModels(sequelize);
 

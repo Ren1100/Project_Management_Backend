@@ -11,13 +11,11 @@
         getById,
         getByEmail,
         create,
-        verifyOTP,
+        sendOTP,
         update,
         delete: _delete,
         updateUserProjects
     };
-
-    let registrationData = {};
 
     async function authenticate({ email, password }) {
         const user = await db.User.scope('withHash').findOne({ where: { email } });
@@ -67,47 +65,51 @@
             throw 'Email "' + params.email + '" is already taken';
         }
 
+        const emailOTP = await db.EmailOTP.findOne({ 
+            where: { otp: params.otp },
+            order: [['createdAt', 'DESC']], // Order by createdAt column in descending order
+            limit: 1 // Limit the result to one record
+        });
+
+        if (!emailOTP){
+            throw 'OTP Verification failed'
+        }
+
         // hash password
         if (params.password) {
             params.hash = await bcrypt.hash(params.password, 10);
         }
 
-
-
-        const otp = generateOTP();
         params.role = role;
-        registrationData = { ...params, otp }
 
-
-        await sendOTP(params.email, otp);
+        await db.EmailOTP.destroy({ where: { email: params.email } });
+        await db.User.create(params)
     }
 
-    async function verifyOTP(inputOTP) {
-        const userData = registrationData;
-
-        if (!userData) {
-            throw 'Registration information not found';
+    async function sendOTP(email) {
+        const otp = generateOTP();
+        
+        try {
+            // Send mail with defined transport object
+            let info = await nodemailer.sendEmail({
+                auth: {
+                    user: 'pmmusashi@outlook.com', // Your Outlook email address
+                    pass: '@1hsasum' // Your Outlook email password
+                },
+                from: 'pmmusashi@outlook.com', // Sender address (Outlook email)
+                to: email, // Recipient email address
+                subject: 'One-Time Password (OTP) for Registration', // Subject line
+                html: `<p>Your One-Time Password (OTP) for registration is: <strong>${otp}</strong></p>` // HTML body with OTP
+            });
+    
+            console.log('OTP sent successfully');
+        } catch (error) {
+            console.error('Error sending email:', error);
         }
-        const { otp, ...params } = userData;
 
-        const sentOTP = String(otp); // Convert sentOTP to string
-
-        const receivedOTP = inputOTP.otp
-
-        // Compare the sent OTP with the input OTP
-        const isOTPVerified = await compareOTP(sentOTP, receivedOTP);
-
-        if (isOTPVerified) {
-            // Register user
-            await db.User.create(params);
-
-            // Clear registration data
-            delete registrationData;
-
-        } else {
-            throw 'OTP verification failed';
-        }
+        await db.EmailOTP.create({ email, otp });
     }
+    
 
     async function update(id, params) {
         const user = await getUser(id);
@@ -161,29 +163,4 @@
     function generateOTP() {
         // Generate a random 6-digit OTP
         return Math.floor(100000 + Math.random() * 900000);
-    }
-
-    async function sendOTP(email, otp) {
-        try {
-            // Send mail with defined transport object
-            let info = await nodemailer.sendEmail({
-                auth: {
-                    user: 'pmmusashi@outlook.com', // Your Outlook email address
-                    pass: '@1hsasum' // Your Outlook email password
-                },
-                from: 'pmmusashi@outlook.com', // Sender address (Outlook email)
-                to: email, // Recipient email address
-                subject: 'One-Time Password (OTP) for Registration', // Subject line
-                html: `<p>Your One-Time Password (OTP) for registration is: <strong>${otp}</strong></p>` // HTML body with OTP
-            });
-    
-            console.log('Message sent: ' + info.response);
-        } catch (error) {
-            console.error('Error sending email:', error);
-        }
-    }
-
-    async function compareOTP(sentOTP, inputOTP) {
-        // Perform comparison (replace with your own OTP verification logic)
-        return sentOTP === inputOTP;
     }
