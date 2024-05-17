@@ -1,12 +1,24 @@
     const express = require('express');
     const router = express.Router();
     const Joi = require('joi');
+    const multer = require('multer');
+    const path = require('path');
+
 
     const validateRequest = require('_middleware/validate-request');
     const authorize = require('_middleware/authorize');
-    const userService = require('../users/user.service');
     const projectService = require('./project.service');
     const authorizeProject = require('_middleware/authorizeProject');
+
+    const storage = multer.diskStorage({
+        destination: function (req, file, cb) {
+            cb(null, 'uploads/');
+        },
+        filename: function (req, file, cb) {
+            cb(null, Date.now() + path.extname(file.originalname));
+        }
+    });
+    const upload = multer({ storage: storage });
 
 
 
@@ -26,6 +38,12 @@
     router.put('/:projectId/tasks/:taskId/subtasks/:subtaskId', authorizeProject(), updateSubtaskSchema, updateSubtask);
     router.delete('/:projectId/tasks/:taskId/subtasks/:subtaskId', authorizeProject(), deleteSubtask);
     router.post('/:projectId/invite', authorizeProject(), inviteUserSchema, inviteUser);
+    router.post('/:projectId/tasks/:taskId/upload', upload.single('file'), uploadFile);
+    router.get('/:projectId/tasks/:taskId/files/:fileId/download', downloadFile);
+    router.get('/:projectId/tasks/:taskId/files', getAllFile);
+
+
+
 
     module.exports = router;
 
@@ -136,8 +154,10 @@
     function createSubtaskSchema(req, res, next) {
         const schema = Joi.object({
             subtaskName: Joi.string().required(),
+            subtaskManPower: Joi.number().positive().required(),
             subtaskStartDate: Joi.date().iso().required(),
-            subtaskEndDate: Joi.date().iso().required()
+            subtaskEndDate: Joi.date().iso().required(),
+            completed: Joi.boolean().empty('')
         });
         validateRequest(req, next, schema);
     }
@@ -157,8 +177,10 @@
     function updateSubtaskSchema(req, res, next) {
         const schema = Joi.object({
             subtaskName: Joi.string().empty(''),
+            subtaskManPower: Joi.number().positive().empty(''),
             subtaskStartDate: Joi.date().iso().empty(''),
-            subtaskEndDate: Joi.date().iso().empty('')
+            subtaskEndDate: Joi.date().iso().empty(''),
+            completed: Joi.boolean().empty('')
         });
         validateRequest(req, next, schema);
     }
@@ -187,3 +209,24 @@
             .then(userProject => res.json({ userProject }))
             .catch(next);
     }
+
+    function uploadFile(req, res, next) {
+        const { taskId } = req.params;
+        if (!req.file) {
+            return res.status(400).json({ message: 'File is required' });
+        }
+        projectService.uploadFile(taskId, req.file)
+            .then(file => res.json(file))
+            .catch(next);
+    }
+    function getAllFile(req, res, next) {
+        projectService.getAllFile(req.params.taskId)
+            .then(files => res.json(files))
+            .catch(next);
+    }
+    function downloadFile(req, res, next) {
+        const fileId = req.params.fileId; // Assuming fileId is passed as a parameter
+        projectService.downloadFile(fileId, res)
+            .catch(next);
+    }
+    

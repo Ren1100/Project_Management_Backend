@@ -25,12 +25,13 @@ async function initialize() {
     db.EmailOTP = emailOTPModel(sequelize); // Include EmailOTP model
 
 
-    const { Project, Task, Subtask, History } = require('../projects/project.model').initializeModels(sequelize);
+    const { Project, Task, Subtask, History, File} = require('../projects/project.model').initializeModels(sequelize);
 
     db.Project = Project;
     db.Task = Task;
     db.Subtask = Subtask;
     db.History = History;
+    db.File = File;
 
     db.UserProject = require('../userproject/userproject.model')(sequelize);
 

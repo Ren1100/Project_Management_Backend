@@ -8,8 +8,9 @@ function initializeModels(sequelize) {
     const Project = defineProjectModel(sequelize);
     const Task = defineTaskModel(sequelize);
     const Subtask = defineSubtaskModel(sequelize);
-
     const History = defineHistoryModel(sequelize);
+    const File = defineFileModel(sequelize);
+
 
     // Define association between Project and Task
     Project.hasMany(Task, { as: 'tasks', foreignKey: 'projectId' });
@@ -20,7 +21,9 @@ function initializeModels(sequelize) {
     Task.hasMany(History, { as: 'history', foreignKey: 'taskId' });
     Subtask.hasMany(History, { as: 'history', foreignKey: 'subtaskId' });
 
-    return { Project, Task, Subtask, History }; // Return all models
+    Task.hasMany(File, { as: 'files', foreignKey: 'taskId' });
+
+    return { Project, Task, Subtask, History, File }; // Return all models
 }
 
 function defineProjectModel(sequelize) {
@@ -46,8 +49,10 @@ function defineTaskModel(sequelize) {
 function defineSubtaskModel(sequelize) {
     return sequelize.define('Subtask', {
         subtaskName: { type: DataTypes.STRING, allowNull: false },
+        subtaskManPower: { type: DataTypes.DECIMAL, allowNull: false},
         subtaskStartDate: { type: DataTypes.DATEONLY, allowNull: false },
-        subtaskEndDate: { type: DataTypes.DATEONLY, allowNull: false }
+        subtaskEndDate: { type: DataTypes.DATEONLY, allowNull: false },
+        completed: { type: DataTypes.BOOLEAN, allowNull: false} // New completion status field
     });
 }
 
@@ -60,5 +65,13 @@ function defineHistoryModel(sequelize) {
         data: { type: DataTypes.TEXT, allowNull: false }, // Use TEXT data type instead of JSON
         userId: { type: DataTypes.INTEGER, allowNull: false }, // User who made the change
         timestamp: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW } // Timestamp of the change
+    });
+}
+
+function defineFileModel(sequelize) {
+    return sequelize.define('File', {
+        name: { type: DataTypes.STRING, allowNull: false },
+        path: { type: DataTypes.STRING, allowNull: false },
+        taskId: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'Tasks', key: 'id' } }
     });
 }

@@ -1,7 +1,6 @@
 const db = require('_helpers/db');
 const userService = require('../users/user.service');
-const jwt = require('jsonwebtoken');
-const { secret } = require('config.json');
+const fs = require('fs');
 
 
 module.exports = {
@@ -20,7 +19,11 @@ module.exports = {
     updateSubtask,
     deleteSubtask: _deleteSubtask,
     inviteUser,
-    getUserProjects
+    getUserProjects,
+    uploadFile,
+    getAllFile,
+    downloadFile,
+
 };
 
 async function getAll(userId) {
@@ -168,6 +171,49 @@ async function inviteUser(projectId, invitedUserEmail) {
     return { userProject};
 }
 
+async function uploadFile(taskId, fileData) {
+
+    const normalizedPath = fileData.path.replace(/\\/g, '/');
+
+    const file = await db.File.create({
+        name: fileData.originalname,
+        path: normalizedPath,
+        taskId: taskId
+    });
+    return file;
+}
+
+async function getAllFile(taskId) {
+    const task = await getTask(taskId);
+    return await task.getFiles(); // Fetch subtasks associated with the project
+}
+
+async function downloadFile(fileId, res) {
+    try {
+        const file = await getFile(fileId);
+        const filePath = file.path;
+
+        // Check if the file exists
+        fs.access(filePath, fs.constants.F_OK, (err) => {
+            if (err) {
+                // File does not exist
+                return res.status(404).json({ message: 'File not found' });
+            }
+
+            // Set response headers
+            res.setHeader('Content-Disposition', `attachment; filename="${file.name}"`);
+            res.setHeader('Content-Type', 'application/octet-stream'); // Adjust Content-Type based on file type if needed
+
+            // Send the file as a downloadable attachment
+            const fileStream = fs.createReadStream(filePath);
+            fileStream.pipe(res);
+        });
+    } catch (error) {
+        throw error; // Propagate error to be caught by the controller
+    }
+}
+
+
 
 // helper function
 async function getProject(projectId) {
@@ -191,6 +237,12 @@ async function getSubtask(subtaskId) {
     const subtask = await db.Subtask.findByPk(subtaskId);
     if (!subtask) throw 'Subtask not found';
     return subtask;
+}
+
+async function getFile(fileId) {
+    const file = await db.File.findByPk(fileId);
+    if (!file) throw 'Subtask not found';
+    return file;
 }
 
 async function createHistoryEntry(model, action, data, userId) {
