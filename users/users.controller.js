@@ -9,7 +9,7 @@ const userService = require('./user.service');
 // routes
 router.post('/authenticate', authenticateSchema, authenticate);
 router.post('/register', registerSchema, register);
-router.post('/sendOTP', sendOTPSchema, sendOTP);
+// router.post('/sendOTP', sendOTPSchema, sendOTP);
 router.get('/', authorize(), getAll);
 router.get('/current', authorize(), getCurrent);
 router.get('/:id', authorize(), getById);
@@ -37,7 +37,6 @@ function registerSchema(req, res, next) {
         fullName: Joi.string().required(),
         email: Joi.string().required(),
         password: Joi.string().min(6).required(),
-        otp: Joi.string().required()
     });
     validateRequest(req, next, schema);
 }
@@ -48,18 +47,18 @@ function register(req, res, next) {
         .catch(next);
 }
 
-function sendOTPSchema(req, res, next) {
-    const schema = Joi.object({
-        email: Joi.string().required()
-    });
-    validateRequest(req, next, schema);
-}
+// function sendOTPSchema(req, res, next) {
+//     const schema = Joi.object({
+//         email: Joi.string().required()
+//     });
+//     validateRequest(req, next, schema);
+// }
 
-async function sendOTP(req, res, next) {
-    userService.sendOTP(req.body.email)
-        .then(() => res.json({ message: 'OTP has been sent successfully' }))
-        .catch(next);
-}
+// async function sendOTP(req, res, next) {
+//     userService.sendOTP(req.body.email)
+//         .then(() => res.json({ message: 'OTP has been sent successfully' }))
+//         .catch(next);
+// }
 
 function getAll(req, res, next) {
     userService.getAll()

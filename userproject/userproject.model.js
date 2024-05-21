@@ -8,7 +8,7 @@ function model(sequelize) {
             type: DataTypes.STRING,
             allowNull: false,
             validate: {
-                isIn: [['user', 'admin']]
+                isIn: [['user', 'admin', 'project owner']]
             }
         }
     });

@@ -9,6 +9,8 @@
     const authorize = require('_middleware/authorize');
     const projectService = require('./project.service');
     const authorizeProject = require('_middleware/authorizeProject');
+    const authorizeTask = require('_middleware/authorizeTask');
+
 
     const storage = multer.diskStorage({
         destination: function (req, file, cb) {
@@ -26,20 +28,21 @@
     router.post('/create', authorize(), createProjectSchema, createProject);
     router.get('/', authorizeProject(), getAllProjects);
     router.get('/:projectId', authorizeProject(), getProjectById);
+    router.get('/:projectId/getUser', getProjectUsers);
     router.put('/:projectId', authorizeProject(), updateProjectSchema, updateProject);
     router.delete('/:projectId', authorizeProject(), deleteProject);
     router.post('/:projectId/tasks/create',authorizeProject(), createTaskSchema, createTask);
     router.get('/:projectId/tasks', authorizeProject(), getAllTasks);
-    router.get('/:projectId/tasks/:taskId', authorizeProject(), getTaskById);
-    router.put('/:projectId/tasks/:taskId', authorizeProject(), updateTaskSchema, updateTask);
-    router.delete('/:projectId/tasks/:taskId', authorizeProject(), deleteTask);
-    router.post('/:projectId/tasks/:taskId/subtasks/create', authorizeProject(), createSubtaskSchema, createSubtask);
-    router.get('/:projectId/tasks/:taskId/subtasks', authorizeProject(), getAllSubtasks);
-    router.put('/:projectId/tasks/:taskId/subtasks/:subtaskId', authorizeProject(), updateSubtaskSchema, updateSubtask);
-    router.delete('/:projectId/tasks/:taskId/subtasks/:subtaskId', authorizeProject(), deleteSubtask);
-    router.post('/:projectId/invite', authorizeProject(), inviteUserSchema, inviteUser);
-    router.post('/:projectId/tasks/:taskId/upload', upload.single('file'), uploadFile);
-    router.get('/:projectId/tasks/:taskId/files/:fileId/download', downloadFile);
+    router.get('/:projectId/tasks/:taskId', getTaskById);
+    router.put('/:projectId/tasks/:taskId', authorizeTask(), updateTaskSchema, updateTask);
+    router.delete('/:projectId/tasks/:taskId', authorizeTask(), deleteTask);
+    router.post('/:projectId/tasks/:taskId/subtasks/create', authorizeTask(), createSubtaskSchema, createSubtask);
+    router.get('/:projectId/tasks/:taskId/subtasks', getAllSubtasks);
+    router.put('/:projectId/tasks/:taskId/subtasks/:subtaskId', authorizeTask(), updateSubtaskSchema, updateSubtask);
+    router.delete('/:projectId/tasks/:taskId/subtasks/:subtaskId', authorizeTask(), deleteSubtask);
+    router.post('/:projectId/invite', authorizeTask(), inviteUserSchema, inviteUser);
+    router.post('/:projectId/tasks/:taskId/upload', authorizeTask(), upload.single('file'), uploadFile);
+    router.get('/:projectId/tasks/:taskId/files/:fileId/download', authorizeTask(), downloadFile);
     router.get('/:projectId/tasks/:taskId/files', getAllFile);
 
 
@@ -53,7 +56,6 @@
             PIC: Joi.string().required(),
             budget: Joi.number().positive().required(),
             startDate: Joi.date().iso().required(),
-            endDate: Joi.date().iso().required()
         });
         validateRequest(req, next, schema);
     }
@@ -67,6 +69,12 @@
     function getAllProjects(req, res, next) {
         projectService.getAll(req.user.id)
             .then(projects => res.json(projects))
+            .catch(next);
+    }
+
+    function getProjectUsers(req, res, next) {
+        projectService.getProjectUsers(req.params.projectId)
+            .then(users => res.json(users))
             .catch(next);
     }
 
@@ -105,7 +113,7 @@
             taskPIC: Joi.string().required(),
             taskBudget: Joi.number().positive().required(),
             taskStartDate: Joi.date().iso().required(),
-            taskEndDate: Joi.date().iso().required()
+            taskEndDate: Joi.date().iso().required(),
         });
         validateRequest(req, next, schema);
     }
@@ -134,7 +142,8 @@
             taskPIC: Joi.string().empty(''),
             taskBudget: Joi.number().positive().empty(''),
             taskStartDate: Joi.date().iso().empty(''),
-            taskEndDate: Joi.date().iso().empty('')
+            taskEndDate: Joi.date().iso().empty(''),
+            comment: Joi.string().empty('')
         });
         validateRequest(req, next, schema);
     }

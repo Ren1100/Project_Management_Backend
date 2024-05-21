@@ -42,7 +42,8 @@ function defineTaskModel(sequelize) {
         taskPIC: { type: DataTypes.STRING, allowNull: false },
         taskBudget: { type: DataTypes.DECIMAL, allowNull: false },
         taskStartDate: { type: DataTypes.DATEONLY, allowNull: false },
-        taskEndDate: { type: DataTypes.DATEONLY, allowNull: false }
+        taskEndDate: { type: DataTypes.DATEONLY, allowNull: false },
+        comment: { type: DataTypes.STRING, allowNull: true }
     });
 }
 

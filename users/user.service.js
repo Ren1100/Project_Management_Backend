@@ -10,8 +10,9 @@
         getAll,
         getById,
         getByEmail,
+        getByFullName,
         create,
-        sendOTP,
+        // sendOTP,
         update,
         delete: _delete,
         updateUserProjects
@@ -44,6 +45,12 @@
         if (!user) throw 'User not found';
         return user;
     }
+
+    async function getByFullName(email) {
+        const user = await db.User.findOne({ where: { fullName } });
+        if (!user) throw 'User not found';
+        return user;
+    }
     
 
     async function getById(id) {
@@ -65,15 +72,15 @@
             throw 'Email "' + params.email + '" is already taken';
         }
 
-        const emailOTP = await db.EmailOTP.findOne({ 
-            where: { otp: params.otp },
-            order: [['createdAt', 'DESC']], // Order by createdAt column in descending order
-            limit: 1 // Limit the result to one record
-        });
+        // const emailOTP = await db.EmailOTP.findOne({ 
+        //     where: { otp: params.otp },
+        //     order: [['createdAt', 'DESC']], // Order by createdAt column in descending order
+        //     limit: 1 // Limit the result to one record
+        // });
 
-        if (!emailOTP){
-            throw 'OTP Verification failed'
-        }
+        // if (!emailOTP){
+        //     throw 'OTP Verification failed'
+        // }
 
         // hash password
         if (params.password) {
@@ -82,33 +89,33 @@
 
         params.role = role;
 
-        await db.EmailOTP.destroy({ where: { email: params.email } });
+        // await db.EmailOTP.destroy({ where: { email: params.email } });
         await db.User.create(params)
     }
 
-    async function sendOTP(email) {
-        const otp = generateOTP();
+    // async function sendOTP(email) {
+    //     const otp = generateOTP();
         
-        try {
-            // Send mail with defined transport object
-            let info = await nodemailer.sendEmail({
-                auth: {
-                    user: 'pmmusashi@outlook.com', // Your Outlook email address
-                    pass: '@1hsasum' // Your Outlook email password
-                },
-                from: 'pmmusashi@outlook.com', // Sender address (Outlook email)
-                to: email, // Recipient email address
-                subject: 'One-Time Password (OTP) for Registration', // Subject line
-                html: `<p>Your One-Time Password (OTP) for registration is: <strong>${otp}</strong></p>` // HTML body with OTP
-            });
+    //     try {
+    //         // Send mail with defined transport object
+    //         let info = await nodemailer.sendEmail({
+    //             auth: {
+    //                 user: 'pmmusashi@outlook.com', // Your Outlook email address
+    //                 pass: '@1hsasum' // Your Outlook email password
+    //             },
+    //             from: 'pmmusashi@outlook.com', // Sender address (Outlook email)
+    //             to: email, // Recipient email address
+    //             subject: 'One-Time Password (OTP) for Registration', // Subject line
+    //             html: `<p>Your One-Time Password (OTP) for registration is: <strong>${otp}</strong></p>` // HTML body with OTP
+    //         });
     
-            console.log('OTP sent successfully');
-        } catch (error) {
-            console.error('Error sending email:', error);
-        }
+    //         console.log('OTP sent successfully');
+    //     } catch (error) {
+    //         console.error('Error sending email:', error);
+    //     }
 
-        await db.EmailOTP.create({ email, otp });
-    }
+    //     await db.EmailOTP.create({ email, otp });
+    // }
     
 
     async function update(id, params) {
@@ -160,7 +167,7 @@
     }
     
 
-    function generateOTP() {
-        // Generate a random 6-digit OTP
-        return Math.floor(100000 + Math.random() * 900000);
-    }
+    // function generateOTP() {
+    //     // Generate a random 6-digit OTP
+    //     return Math.floor(100000 + Math.random() * 900000);
+    // }

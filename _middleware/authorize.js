@@ -22,20 +22,22 @@ function authorize() {
 
                 // Authorization successful, attach user object to request
                 req.user = user.toJSON(); // Convert Sequelize model instance to JSON
+
+                next();
                 
                 // Check user role and grant access accordingly
-                if (req.user.role === 'admin') {
-                    // Admin role: Grant access to all routes
-                    next();
-                } else if (req.user.role === 'user') {
-                    // User role: Grant access to getById and update routes
-                    if (req.path === `/${req.params.id}`) {
-                        next();
-                    }else {
-                        // For any other routes, return a Forbidden response
-                        return res.status(403).json({ message: 'Forbidden' });
-                    } 
-                }
+                // if (req.user.role === 'admin') {
+                //     // Admin role: Grant access to all routes
+                //     next();
+                // } else if (req.user.role === 'user') {
+                //     // User role: Grant access to getById and update routes
+                //     if (req.path === `/${req.params.id}`) {
+                //         next();
+                //     }else {
+                //         // For any other routes, return a Forbidden response
+                //         return res.status(403).json({ message: 'Forbidden' });
+                //     } 
+                // }
             } catch (err) {
                 // Handle any errors
                 return res.status(500).json({ message: 'Internal Server Error' });

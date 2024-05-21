@@ -1,10 +1,11 @@
 const db = require('_helpers/db');
 const userService = require('../users/user.service');
 const fs = require('fs');
-
+const path = require('path');
 
 module.exports = {
     getAll,
+    getProjectUsers,
     getById,
     create,
     update,
@@ -48,6 +49,26 @@ async function getAll(userId) {
     return await db.Project.findAll({ where: { id: projectIds } });
 }
 
+async function getProjectUsers(projectId) {
+    const project = await getProject(projectId);
+    if (!project) {
+        throw 'Project not found';
+    }
+
+    const users = await project.getUsers({
+        attributes: ['id', 'fullName', 'email'], // Adjust attributes as necessary
+        joinTableAttributes: []
+    });
+
+    if (users.length === 0) {
+        throw new Error('No users associated with this project.');
+    }
+
+    return users.map(user => user.fullName); // Return only the names of the users
+}
+
+
+
 async function getById(projectId) {
     return await getProject(projectId);
 }
@@ -56,6 +77,11 @@ async function create(params, userId) {
     // save project
     const project = await db.Project.create(params);
     await createHistoryEntry('Project', 'create', project, userId);
+    await db.UserProject.create({
+        userId: userId,
+        projectId: project.id,
+        accessLevel: 'project owner' // Assuming 'owner' is the role for project owners
+    });
 
     return { project };
 }
@@ -200,9 +226,24 @@ async function downloadFile(fileId, res) {
                 return res.status(404).json({ message: 'File not found' });
             }
 
+            // Get file extension
+            const fileExt = path.extname(filePath).toLowerCase();
+
             // Set response headers
             res.setHeader('Content-Disposition', `attachment; filename="${file.name}"`);
-            res.setHeader('Content-Type', 'application/octet-stream'); // Adjust Content-Type based on file type if needed
+
+            // Set Content-Type based on file extension
+            let contentType = 'application/octet-stream'; // Default to generic binary stream
+            switch (fileExt) {
+                case '.pdf':
+                    contentType = 'application/pdf';
+                    break;
+                case '.dwg':
+                    contentType = 'application/acad';
+                    break;
+                // Add more cases for other file types as needed
+            }
+            res.setHeader('Content-Type', contentType);
 
             // Send the file as a downloadable attachment
             const fileStream = fs.createReadStream(filePath);
@@ -225,7 +266,6 @@ async function getProject(projectId) {
 async function getUserProjects(userId) {
     return await db.UserProject.findAll({ where: { userId }, include: db.Project });
 }
-
 
 async function getTask(taskId) {
     const task = await db.Task.findByPk(taskId);
