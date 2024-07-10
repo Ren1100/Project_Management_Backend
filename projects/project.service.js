@@ -2,6 +2,8 @@ const db = require('_helpers/db');
 const userService = require('../users/user.service');
 const fs = require('fs');
 const path = require('path');
+const mime = require('mime-types');
+
 
 module.exports = {
     getAll,
@@ -226,23 +228,12 @@ async function downloadFile(fileId, res) {
                 return res.status(404).json({ message: 'File not found' });
             }
 
-            // Get file extension
+            // Get file extension and MIME type
             const fileExt = path.extname(filePath).toLowerCase();
+            const contentType = mime.lookup(fileExt) || 'application/octet-stream';
 
             // Set response headers
             res.setHeader('Content-Disposition', `attachment; filename="${file.name}"`);
-
-            // Set Content-Type based on file extension
-            let contentType = 'application/octet-stream'; // Default to generic binary stream
-            switch (fileExt) {
-                case '.pdf':
-                    contentType = 'application/pdf';
-                    break;
-                case '.dwg':
-                    contentType = 'application/acad';
-                    break;
-                // Add more cases for other file types as needed
-            }
             res.setHeader('Content-Type', contentType);
 
             // Send the file as a downloadable attachment
@@ -253,6 +244,7 @@ async function downloadFile(fileId, res) {
         throw error; // Propagate error to be caught by the controller
     }
 }
+
 
 
 

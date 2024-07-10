@@ -56,6 +56,7 @@
             PIC: Joi.string().required(),
             budget: Joi.number().positive().required(),
             startDate: Joi.date().iso().required(),
+            endDate: Joi.date().iso().empty('')
         });
         validateRequest(req, next, schema);
     }
